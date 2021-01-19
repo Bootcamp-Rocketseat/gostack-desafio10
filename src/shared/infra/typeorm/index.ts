@@ -8,7 +8,7 @@ export default async (name = 'default'): Promise<Connection> => {
       name,
       database:
         process.env.NODE_ENV === 'test'
-          ? 'gostack_desafio09_tests'
+          ? 'gostack_desafio10_tests'
           : defaultOptions.database,
     }),
   );
