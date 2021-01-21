@@ -1,4 +1,5 @@
-import { getRepository, Repository, In } from 'typeorm';
+/* eslint-disable no-await-in-loop */
+import { getRepository, Repository } from 'typeorm';
 
 import IProductsRepository from '@modules/products/repositories/IProductsRepository';
 import ICreateProductDTO from '@modules/products/dtos/ICreateProductDTO';
@@ -21,21 +22,51 @@ class ProductsRepository implements IProductsRepository {
     price,
     quantity,
   }: ICreateProductDTO): Promise<Product> {
-    // TODO
+    const product = this.ormRepository.create({
+      name,
+      price,
+      quantity,
+    });
+
+    await this.ormRepository.save(product);
+
+    return product;
   }
 
   public async findByName(name: string): Promise<Product | undefined> {
-    // TODO
+    const product = await this.ormRepository.findOne({
+      where: {
+        name,
+      },
+    });
+
+    return product;
   }
 
   public async findAllById(products: IFindProducts[]): Promise<Product[]> {
-    // TODO
+    const ids = products.map(product => product.id);
+    const productsFind = await this.ormRepository.findByIds(ids);
+    return productsFind;
   }
 
   public async updateQuantity(
     products: IUpdateProductsQuantityDTO[],
   ): Promise<Product[]> {
-    // TODO
+    const updatedProducts: Product[] = [];
+
+    for (let index = 0; index < products.length; index += 1) {
+      const productUpdate = await this.ormRepository.findOne(
+        products[index].id,
+      );
+
+      if (productUpdate) {
+        productUpdate.quantity = products[index].quantity;
+        await this.ormRepository.save(productUpdate);
+        updatedProducts.push(productUpdate);
+      }
+    }
+
+    return updatedProducts;
   }
 }
 

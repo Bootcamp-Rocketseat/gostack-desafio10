@@ -6,6 +6,8 @@ import IProductsRepository from '@modules/products/repositories/IProductsReposit
 import ICustomersRepository from '@modules/customers/repositories/ICustomersRepository';
 import Order from '../infra/typeorm/entities/Order';
 import IOrdersRepository from '../repositories/IOrdersRepository';
+import ICreateOrderDTO from '../dtos/ICreateOrderDTO';
+import IUpdateProductsQuantityDTO from '../../products/dtos/IUpdateProductsQuantityDTO';
 
 interface IProduct {
   id: string;
@@ -35,10 +37,41 @@ class CreateOrderService {
       throw new AppError('Customer not found');
     }
 
-    const order = await this.ordersRepository.create({
+    const productsFind = await this.productsRepository.findAllById(products);
+
+    const orderCreate: ICreateOrderDTO = {
       customer,
       products: [],
+    };
+    const productsQuantityUpdate: IUpdateProductsQuantityDTO[] = [];
+
+    products.forEach(product => {
+      const item = productsFind.find(
+        productFind => product.id === productFind.id,
+      );
+
+      if (!item) {
+        throw new AppError('Cannot create an order for a inexistent product');
+      }
+
+      if (item.quantity < product.quantity) {
+        throw new AppError('Quantity unavailable');
+      }
+
+      productsQuantityUpdate.push({
+        id: item.id,
+        quantity: item.quantity - product.quantity,
+      });
+
+      orderCreate.products.push({
+        product_id: item.id,
+        price: item.price,
+        quantity: product.quantity,
+      });
     });
+
+    const order = await this.ordersRepository.create(orderCreate);
+    await this.productsRepository.updateQuantity(productsQuantityUpdate);
 
     return order;
   }
